@@ -5,36 +5,104 @@
 </head>
 <body>
   <script>
-    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
-      // The API call was successful!
-      return response.text();
-    }).then(function (html) {
-      // Convert the HTML string into a document object
-      var parser = new DOMParser();
-      var doc = parser.parseFromString(html, 'text/html');
+    // Function to fetch information for individual post/comment pages
+    function fetchPostInfo(url) {
+      return fetch('https://corsproxy.io/?' + encodeURIComponent(url))
+        .then(function (response) {
+          // The API call was successful!
+          return response.text();
+        }).then(function (html) {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, 'text/html');
 
-      // Get all the posts on the page
-      var posts = doc.querySelectorAll('.thing.link');
+          var postInfo = {};
 
-      posts.forEach(function(post) {
-        var title = post.querySelector('.title a').textContent;
-        var author = post.querySelector('.author').textContent;
-        var upvotes = post.querySelector('.score.likes').textContent;
-        var downvotes = post.querySelector('.score.dislikes').textContent;
-        var url = post.querySelector('.title a').getAttribute('href');
+          // Get upvote count
+          postInfo.upvotes = doc.querySelector('.score.unvoted') ? doc.querySelector('.score.unvoted').textContent : '0';
 
-        console.log("Title: " + title);
-        console.log("Author: " + author);
-        console.log("Upvotes: " + upvotes);
-        console.log("Downvotes: " + downvotes);
-        console.log("URL: " + url);
-        console.log("-------------------------------------------");
+          // Get comment count
+          postInfo.commentCount = doc.querySelector('.comments').textContent;
+
+          // Get title
+          postInfo.title = doc.querySelector('.title .title').textContent;
+
+          // Get author
+          postInfo.author = doc.querySelector('.author').textContent;
+
+          // Get image URL (if available)
+          postInfo.imageUrl = doc.querySelector('.expando .preview img') ? doc.querySelector('.expando .preview img').getAttribute('src') : false;
+
+          // Get comments in a nested JSON style
+          postInfo.comments = getComments(doc);
+
+          return postInfo;
+        }).catch(function (err) {
+          // There was an error
+          console.error('Something went wrong.', err);
+        });
+    }
+
+    // Function to parse comments recursively
+    function getComments(node) {
+      var comments = [];
+
+      var topLevelComments = node.querySelectorAll('.top-level-comment');
+
+      topLevelComments.forEach(function(commentNode) {
+        var comment = {};
+
+        comment.title = commentNode.querySelector('.entry .tagline .author').textContent;
+        comment.author = commentNode.querySelector('.entry .tagline .author').textContent;
+        comment.text = commentNode.querySelector('.entry .usertext-body .md').textContent;
+        comment.upvotes = commentNode.querySelector('.entry .score.likes').textContent;
+        comment.date = commentNode.querySelector('.entry .tagline time').getAttribute('title');
+
+        var nestedComments = commentNode.nextElementSibling;
+
+        if (nestedComments && nestedComments.classList.contains('nestedlisting')) {
+          comment.comments = getComments(nestedComments);
+        }
+
+        comments.push(comment);
       });
 
-    }).catch(function (err) {
-      // There was an error
-      console.error('Something went wrong.', err);
-    });
+      return comments;
+    }
+
+    // Function to handle subreddit listings or individual post/comment pages
+    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/AskReddit/comments/18035us/what_isnt_the_flex_many_people_think_it_is/'))
+      .then(function (response) {
+        // The API call was successful!
+        return response.text();
+      }).then(function (html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+
+        if (window.location.href.includes('/comments/')) {
+          // This is an individual post/comment page
+          fetchPostInfo(window.location.href).then(function(postInfo) {
+            console.log(postInfo);
+            // You can further process or utilize the post information here
+          });
+        } else {
+          // This is a subreddit listing page
+          var posts = doc.querySelectorAll('.thing.link');
+
+          posts.forEach(function(post) {
+            var postUrl = post.querySelector('.title a').getAttribute('href');
+
+            if (postUrl.includes('/comments/')) {
+              fetchPostInfo(postUrl).then(function(postInfo) {
+                console.log(postInfo);
+                // You can further process or utilize the post information here
+              });
+            }
+          });
+        }
+      }).catch(function (err) {
+        // There was an error
+        console.error('Something went wrong.', err);
+      });
   </script>
 </body>
 </html>
