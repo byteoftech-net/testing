@@ -4,37 +4,76 @@
   <title>Reddit Scraper</title>
 </head>
 <body>
+  <div id="redditContent"></div>
+
   <script>
-    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
-      // The API call was successful!
-      return response.text();
-    }).then(function (html) {
-      // Convert the HTML string into a document object
-      var parser = new DOMParser();
-      var doc = parser.parseFromString(html, 'text/html');
+    // Function to extract subreddit name from the URL
+    function getSubredditFromURL() {
+      var url = window.location.href;
+      var parts = url.split('/');
+      var subredditIndex = parts.indexOf('r');
 
-      // Get all the posts on the page
-      var posts = doc.querySelectorAll('.thing.link');
+      if (subredditIndex !== -1 && subredditIndex < parts.length - 1) {
+        return parts[subredditIndex + 1];
+      }
 
-      posts.forEach(function(post) {
-        var title = post.querySelector('.title a').textContent;
-        var author = post.querySelector('.author').textContent;
-        var upvotes = post.querySelector('.score.likes').textContent;
-        var downvotes = post.querySelector('.score.dislikes').textContent;
-        var url = post.querySelector('.title a').getAttribute('href');
+      return null;
+    }
 
-        console.log("Title: " + title);
-        console.log("Author: " + author);
-        console.log("Upvotes: " + upvotes);
-        console.log("Downvotes: " + downvotes);
-        console.log("URL: " + url);
-        console.log("-------------------------------------------");
+    // Function to fetch and parse Reddit content for a given subreddit
+    function fetchRedditContent(subreddit) {
+      fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/' + subreddit)).then(function (response) {
+        // The API call was successful!
+        return response.text();
+      }).then(function (html) {
+        // Convert the HTML string into a document object
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+
+        // Get all the posts on the page
+        var posts = doc.querySelectorAll('.thing.link');
+
+        var redditData = []; // Array to store post information
+
+        posts.forEach(function(post) {
+          var title = post.querySelector('.title a').textContent;
+          var author = post.querySelector('.author').textContent;
+          var upvotes = post.querySelector('.score.likes').textContent;
+          var downvotes = post.querySelector('.score.dislikes').textContent;
+          var url = post.querySelector('.title a').getAttribute('href');
+
+          // Create an object with post information
+          var postInfo = {
+            "Title": title,
+            "Author": author,
+            "Upvotes": upvotes,
+            "Downvotes": downvotes,
+            "URL": url
+          };
+
+          redditData.push(postInfo); // Push each post's data to the array
+        });
+
+        // Display the JSON content on the page
+        var redditContentElement = document.getElementById('redditContent');
+        redditContentElement.textContent = JSON.stringify(redditData, null, 2);
+
+      }).catch(function (err) {
+        // There was an error
+        console.error('Something went wrong.', err);
       });
+    }
 
-    }).catch(function (err) {
-      // There was an error
-      console.error('Something went wrong.', err);
-    });
+    // Entry point - fetch Reddit content for the subreddit mentioned in the URL
+    window.onload = function() {
+      var subreddit = getSubredditFromURL();
+
+      if (subreddit) {
+        fetchRedditContent(subreddit);
+      } else {
+        console.error('Subreddit not found in the URL.');
+      }
+    };
   </script>
 </body>
 </html>
