@@ -8,42 +8,47 @@ fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/te
   var parser = new DOMParser();
   var doc = parser.parseFromString(html, 'text/html');
 
-  // Get all post elements
+  // Select all post elements
   var postElements = doc.querySelectorAll('.thing.link');
 
-  // Array to store extracted data
-  var postsData = [];
+  // Array to store post data
+  var postData = [];
 
-  // Iterate through each post element to extract data
-  postElements.forEach(function(post) {
+  // Loop through each post element
+  postElements.forEach(function (post) {
+    // Extract relevant information
     var title = post.querySelector('.title').textContent.trim();
     var author = post.getAttribute('data-author');
-    var time = post.querySelector('time').getAttribute('title');
-    var authorRank = post.querySelector('.author').textContent.trim();
-    var commentCount = post.getAttribute('data-comments-count');
-    var upvotes = post.querySelector('.score.likes').getAttribute('title');
-    var downvotes = post.querySelector('.score.dislikes').getAttribute('title');
-    var postURL = post.getAttribute('data-url');
+    var time = post.querySelector('time').getAttribute('datetime');
+    var authorRank = post.querySelector('.author').classList.contains('moderator') ? 'moderator' : 'regular';
+    var subreddit = post.getAttribute('data-subreddit');
+    var commentCount = parseInt(post.getAttribute('data-comments-count'));
+    var isAnnouncement = post.querySelector('.stickied-tagline') !== null;
+    var upvoteCount = parseInt(post.querySelector('.score.likes').textContent);
+    var downvoteCount = parseInt(post.querySelector('.score.dislikes').textContent);
+    var postUrl = 'https://old.reddit.com' + post.getAttribute('data-permalink');
 
-    // Store extracted data in an object
-    var postData = {
+    // Create post object
+    var postObject = {
       title: title,
       author: author,
       time: time,
       authorRank: authorRank,
+      subreddit: subreddit,
       commentCount: commentCount,
-      upvotes: upvotes,
-      downvotes: downvotes,
-      postURL: postURL
+      isAnnouncement: isAnnouncement,
+      upvoteCount: upvoteCount,
+      downvoteCount: downvoteCount,
+      url: postUrl
     };
 
-    // Add the post data to the array
-    postsData.push(postData);
+    // Push post object to postData array
+    postData.push(postObject);
   });
 
-  // Convert the data to JSON format
-  var jsonData = JSON.stringify(postsData);
-  console.log(jsonData); // Output JSON data to console or process further
+  // Convert postData to JSON and log it
+  var jsonData = JSON.stringify(postData, null, 2);
+  console.log(jsonData);
 }).catch(function (err) {
   // There was an error
   console.error('Something went wrong.', err);
