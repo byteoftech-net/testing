@@ -1,20 +1,40 @@
 <!DOCTYPE html>
-<script>
-fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com')).then(function (response) {
-    // The API call was successful!
-    return response.text();
-  }).then(function (html) {
+<html>
+<head>
+  <title>Reddit Scraper</title>
+</head>
+<body>
+  <script>
+    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
+      // The API call was successful!
+      return response.text();
+    }).then(function (html) {
+      // Convert the HTML string into a document object
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
 
-    // Convert the HTML string into a document object
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(html, 'text/html');
-    alert(doc)
-    // Get the image file
-    var img = doc.querySelector('body');
-    alert(img);
+      // Get all the posts on the page
+      var posts = doc.querySelectorAll('.thing.link');
 
-  }).catch(function (err) {
-    // There was an error
-    alert('Something went wrong.', err);
-  });
-</script>
+      posts.forEach(function(post) {
+        var title = post.querySelector('.title a').textContent;
+        var author = post.querySelector('.author').textContent;
+        var upvotes = post.querySelector('.score.likes').textContent;
+        var downvotes = post.querySelector('.score.dislikes').textContent;
+        var url = post.querySelector('.title a').getAttribute('href');
+
+        console.log("Title: " + title);
+        console.log("Author: " + author);
+        console.log("Upvotes: " + upvotes);
+        console.log("Downvotes: " + downvotes);
+        console.log("URL: " + url);
+        console.log("-------------------------------------------");
+      });
+
+    }).catch(function (err) {
+      // There was an error
+      console.error('Something went wrong.', err);
+    });
+  </script>
+</body>
+</html>
