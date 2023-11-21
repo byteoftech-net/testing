@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <script>
-fetch("https://corsproxy.io/?https%3A%2F%2Fold.reddit.com").then(function (response) {
+fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com')).then(function (response) {
     // The API call was successful!
     return response.text();
   }).then(function (html) {
@@ -8,7 +8,7 @@ fetch("https://corsproxy.io/?https%3A%2F%2Fold.reddit.com").then(function (respo
     // Convert the HTML string into a document object
     var parser = new DOMParser();
     var doc = parser.parseFromString(html, 'text/html');
-
+    alert(doc)
     // Get the image file
     var img = doc.querySelector('body');
     alert(img);
