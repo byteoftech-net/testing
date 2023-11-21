@@ -1,72 +1,51 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Reddit Scraper</title>
-</head>
-<body>
-  <script>
-    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
-      // The API call was successful!
-      return response.text();
-    }).then(function (html) {
-      // Convert the HTML string into a document object
-      var parser = new DOMParser();
-      var doc = parser.parseFromString(html, 'text/html');
+<script>
+fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
+  // The API call was successful!
+  return response.text();
+}).then(function (html) {
+  // Convert the HTML string into a document object
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(html, 'text/html');
 
-      // Get all the posts on the page
-      var posts = doc.querySelectorAll('.thing.link');
-      var postDetails = [];
+  // Get all post elements
+  var postElements = doc.querySelectorAll('.thing.link');
 
-      posts.forEach(function(post) {
-        var url = post.querySelector('.title a').getAttribute('href');
+  // Array to store extracted data
+  var postsData = [];
 
-        // Check if the URL matches the specified pattern
-        if (url.includes('https://old.reddit.com/r/AskReddit/comments/')) {
-          // Fetch the matched URL to extract further details
-          fetch('https://corsproxy.io/?' + encodeURIComponent(url)).then(function (response) {
-            return response.text();
-          }).then(function (commentHTML) {
-            var commentDoc = parser.parseFromString(commentHTML, 'text/html');
+  // Iterate through each post element to extract data
+  postElements.forEach(function(post) {
+    var title = post.querySelector('.title').textContent.trim();
+    var author = post.getAttribute('data-author');
+    var time = post.querySelector('time').getAttribute('title');
+    var authorRank = post.querySelector('.author').textContent.trim();
+    var commentCount = post.getAttribute('data-comments-count');
+    var upvotes = post.querySelector('.score.likes').getAttribute('title');
+    var downvotes = post.querySelector('.score.dislikes').getAttribute('title');
+    var postURL = post.getAttribute('data-url');
 
-            // Extract information from the comment page
-            var postInfo = {
-              "url": url,
-              "upvote_count": commentDoc.querySelector('.score.likes').textContent,
-              "comment_count": commentDoc.querySelector('.comments').querySelector('h1').textContent.trim(),
-              "title": commentDoc.querySelector('.entry .title').textContent.trim(),
-              "author": commentDoc.querySelector('.entry .author').textContent.trim(),
-              "image_url": commentDoc.querySelector('.expando').getAttribute('data-cachedhtml') || false
-            };
+    // Store extracted data in an object
+    var postData = {
+      title: title,
+      author: author,
+      time: time,
+      authorRank: authorRank,
+      commentCount: commentCount,
+      upvotes: upvotes,
+      downvotes: downvotes,
+      postURL: postURL
+    };
 
-            // Extract comments (nested JSON)
-            // Modify this part to suit your specific JSON structure for comments
+    // Add the post data to the array
+    postsData.push(postData);
+  });
 
-            // Example structure:
-            var comments = commentDoc.querySelectorAll('.comment');
-            var commentsArray = [];
-
-            comments.forEach(function(comment) {
-              // Extract comment details and add to the commentsArray
-              // ... Extract and add comment details to commentsArray
-            });
-
-            postInfo['comments'] = commentsArray;
-
-            // Push the post information with comments to postDetails array
-            postDetails.push(postInfo);
-
-            // Now postDetails contains information about each post along with comments in a nested JSON style
-            console.log(postDetails);
-          }).catch(function (err) {
-            // Handle errors for fetching comment page
-            console.error('Error fetching comment page:', err);
-          });
-        }
-      });
-    }).catch(function (err) {
-      // There was an error
-      console.error('Something went wrong.', err);
-    });
-  </script>
-</body>
-</html>
+  // Convert the data to JSON format
+  var jsonData = JSON.stringify(postsData);
+  console.log(jsonData); // Output JSON data to console or process further
+}).catch(function (err) {
+  // There was an error
+  console.error('Something went wrong.', err);
+});
+</script>
