@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <script>
-async function getHTML(url) {
-	urlData = await fetch("https://corsproxy.io/"+encodeURIComponent(url))
-	if (urlData.ok) {
-		return urlData.text()
-	}
-	else {
-		return false
-	}
-}
+fetch("https://corsproxy.io/"+encodeURIComponent("https://example.com")).then(function (response) {
+    // The API call was successful!
+    return response.text();
+  }).then(function (html) {
+
+    // Convert the HTML string into a document object
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+
+    // Get the image file
+    var img = doc.querySelector('body');
+    alert(img);
+
+  }).catch(function (err) {
+    // There was an error
+    alert('Something went wrong.', err);
+  });
 </script>
