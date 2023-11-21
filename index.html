@@ -7,19 +7,6 @@
   <div id="redditContent"></div>
 
   <script>
-    // Function to extract subreddit name from the URL
-    function getSubredditFromURL() {
-      var url = window.location.href;
-      var parts = url.split('/');
-      var subredditIndex = parts.indexOf('r');
-
-      if (subredditIndex !== -1 && subredditIndex < parts.length - 1) {
-        return parts[subredditIndex + 1];
-      }
-
-      return null;
-    }
-
     // Function to fetch and parse Reddit content for a given subreddit
     function fetchRedditContent(subreddit) {
       fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/' + subreddit)).then(function (response) {
@@ -64,16 +51,7 @@
       });
     }
 
-    // Entry point - fetch Reddit content for the subreddit mentioned in the URL
-    window.onload = function() {
-      var subreddit = getSubredditFromURL();
-
-      if (subreddit) {
-        fetchRedditContent(subreddit);
-      } else {
-        console.error('Subreddit not found in the URL.');
-      }
-    };
+    fetchRedditContent("memes")
   </script>
 </body>
 </html>
