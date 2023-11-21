@@ -5,104 +5,68 @@
 </head>
 <body>
   <script>
-    // Function to fetch information for individual post/comment pages
-    function fetchPostInfo(url) {
-      return fetch('https://corsproxy.io/?' + encodeURIComponent(url))
-        .then(function (response) {
-          // The API call was successful!
-          return response.text();
-        }).then(function (html) {
-          var parser = new DOMParser();
-          var doc = parser.parseFromString(html, 'text/html');
+    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
+      // The API call was successful!
+      return response.text();
+    }).then(function (html) {
+      // Convert the HTML string into a document object
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
 
-          var postInfo = {};
+      // Get all the posts on the page
+      var posts = doc.querySelectorAll('.thing.link');
+      var postDetails = [];
 
-          // Get upvote count
-          postInfo.upvotes = doc.querySelector('.score.unvoted') ? doc.querySelector('.score.unvoted').textContent : '0';
+      posts.forEach(function(post) {
+        var url = post.querySelector('.title a').getAttribute('href');
 
-          // Get comment count
-          postInfo.commentCount = doc.querySelector('.comments').textContent;
+        // Check if the URL matches the specified pattern
+        if (url.includes('https://old.reddit.com/r/AskReddit/comments/')) {
+          // Fetch the matched URL to extract further details
+          fetch('https://corsproxy.io/?' + encodeURIComponent(url)).then(function (response) {
+            return response.text();
+          }).then(function (commentHTML) {
+            var commentDoc = parser.parseFromString(commentHTML, 'text/html');
 
-          // Get title
-          postInfo.title = doc.querySelector('.title .title').textContent;
+            // Extract information from the comment page
+            var postInfo = {
+              "url": url,
+              "upvote_count": commentDoc.querySelector('.score.likes').textContent,
+              "comment_count": commentDoc.querySelector('.comments').querySelector('h1').textContent.trim(),
+              "title": commentDoc.querySelector('.entry .title').textContent.trim(),
+              "author": commentDoc.querySelector('.entry .author').textContent.trim(),
+              "image_url": commentDoc.querySelector('.expando').getAttribute('data-cachedhtml') || false
+            };
 
-          // Get author
-          postInfo.author = doc.querySelector('.author').textContent;
+            // Extract comments (nested JSON)
+            // Modify this part to suit your specific JSON structure for comments
 
-          // Get image URL (if available)
-          postInfo.imageUrl = doc.querySelector('.expando .preview img') ? doc.querySelector('.expando .preview img').getAttribute('src') : false;
+            // Example structure:
+            var comments = commentDoc.querySelectorAll('.comment');
+            var commentsArray = [];
 
-          // Get comments in a nested JSON style
-          postInfo.comments = getComments(doc);
+            comments.forEach(function(comment) {
+              // Extract comment details and add to the commentsArray
+              // ... Extract and add comment details to commentsArray
+            });
 
-          return postInfo;
-        }).catch(function (err) {
-          // There was an error
-          console.error('Something went wrong.', err);
-        });
-    }
+            postInfo['comments'] = commentsArray;
 
-    // Function to parse comments recursively
-    function getComments(node) {
-      var comments = [];
+            // Push the post information with comments to postDetails array
+            postDetails.push(postInfo);
 
-      var topLevelComments = node.querySelectorAll('.top-level-comment');
-
-      topLevelComments.forEach(function(commentNode) {
-        var comment = {};
-
-        comment.title = commentNode.querySelector('.entry .tagline .author').textContent;
-        comment.author = commentNode.querySelector('.entry .tagline .author').textContent;
-        comment.text = commentNode.querySelector('.entry .usertext-body .md').textContent;
-        comment.upvotes = commentNode.querySelector('.entry .score.likes').textContent;
-        comment.date = commentNode.querySelector('.entry .tagline time').getAttribute('title');
-
-        var nestedComments = commentNode.nextElementSibling;
-
-        if (nestedComments && nestedComments.classList.contains('nestedlisting')) {
-          comment.comments = getComments(nestedComments);
-        }
-
-        comments.push(comment);
-      });
-
-      return comments;
-    }
-
-    // Function to handle subreddit listings or individual post/comment pages
-    fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/AskReddit/comments/18035us/what_isnt_the_flex_many_people_think_it_is/'))
-      .then(function (response) {
-        // The API call was successful!
-        return response.text();
-      }).then(function (html) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(html, 'text/html');
-
-        if (window.location.href.includes('/comments/')) {
-          // This is an individual post/comment page
-          fetchPostInfo(window.location.href).then(function(postInfo) {
-            console.log(postInfo);
-            // You can further process or utilize the post information here
-          });
-        } else {
-          // This is a subreddit listing page
-          var posts = doc.querySelectorAll('.thing.link');
-
-          posts.forEach(function(post) {
-            var postUrl = post.querySelector('.title a').getAttribute('href');
-
-            if (postUrl.includes('/comments/')) {
-              fetchPostInfo(postUrl).then(function(postInfo) {
-                console.log(postInfo);
-                // You can further process or utilize the post information here
-              });
-            }
+            // Now postDetails contains information about each post along with comments in a nested JSON style
+            console.log(postDetails);
+          }).catch(function (err) {
+            // Handle errors for fetching comment page
+            console.error('Error fetching comment page:', err);
           });
         }
-      }).catch(function (err) {
-        // There was an error
-        console.error('Something went wrong.', err);
       });
+    }).catch(function (err) {
+      // There was an error
+      console.error('Something went wrong.', err);
+    });
   </script>
 </body>
 </html>
