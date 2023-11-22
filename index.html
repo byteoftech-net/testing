@@ -32,8 +32,7 @@
           parseComment(commentNode, comments);
         }
       });
-
-      return JSON.stringify(comments, null, 2);
+      return comments
     } catch (error) {
       console.error('Error:', error);
       return {};
@@ -72,11 +71,14 @@ fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/te
       var title = titleElement.textContent.trim();
       var timeElement = post.querySelector('time');
       var time = timeElement ? timeElement.getAttribute('datetime') : 'N/A';
-
-      if (postUrl.contains("/comments/")) {
-        comments = getComments(postUrl)
+      
+      if (postUrl.includes("/comments/")) {
+        getComments(postUrl)
+        .then(comments => {
+          var comments = JSON.stringify(comments, null, 2)
+        })
       } else {
-        comments = {}
+        var comments = {}
       }
       // Create post object
       var postObject = {
