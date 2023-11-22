@@ -1,5 +1,45 @@
 <!DOCTYPE html>
 <script>
+  async function getComments(url) {
+    try {
+      const response = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const comments = {};
+
+      function parseComment(commentNode, obj) {
+        const commentId = commentNode.getAttribute('data-fullname');
+        const commentText = commentNode.querySelector('.usertext-body > div > p').textContent.trim();
+        const repliesContainer = commentNode.querySelector('.child');
+
+        obj[commentId] = { text: commentText };
+
+        if (repliesContainer) {
+          const replies = repliesContainer.querySelectorAll('.comment');
+          obj[commentId].replies = {};
+
+          replies.forEach(reply => {
+            parseComment(reply, obj[commentId].replies);
+          });
+        }
+      }
+
+      const commentNodes = doc.querySelectorAll('.comment');
+      commentNodes.forEach(commentNode => {
+        if (!commentNode.parentElement.classList.contains('child')) {
+          parseComment(commentNode, comments);
+        }
+      });
+
+      return JSON.stringify(comments, null, 2);
+    } catch (error) {
+      console.error('Error:', error);
+      return {};
+    }
+  }
+  
 fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/tearsofthekingdom/')).then(function (response) {
   // The API call was successful!
   return response.text();
@@ -17,9 +57,8 @@ fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/te
   // Loop through each post element
   postElements.forEach(function (post) {
     // Extract relevant information
-    var title = post.querySelector('.title').textContent.trim();
+    var titleElement = post.querySelector('.title');
     var author = post.getAttribute('data-author');
-    var time = post.querySelector('time').getAttribute('datetime');
     var authorRank = post.querySelector('.author').classList.contains('moderator') ? 'moderator' : 'regular';
     var subreddit = post.getAttribute('data-subreddit');
     var commentCount = parseInt(post.getAttribute('data-comments-count'));
@@ -28,22 +67,35 @@ fetch('https://corsproxy.io/?' + encodeURIComponent('https://old.reddit.com/r/te
     var downvoteCount = parseInt(post.querySelector('.score.dislikes').textContent);
     var postUrl = 'https://old.reddit.com' + post.getAttribute('data-permalink');
 
-    // Create post object
-    var postObject = {
-      title: title,
-      author: author,
-      time: time,
-      authorRank: authorRank,
-      subreddit: subreddit,
-      commentCount: commentCount,
-      isAnnouncement: isAnnouncement,
-      upvoteCount: upvoteCount,
-      downvoteCount: downvoteCount,
-      url: postUrl
-    };
+    // Check if title element and author exist
+    if (titleElement && author) {
+      var title = titleElement.textContent.trim();
+      var timeElement = post.querySelector('time');
+      var time = timeElement ? timeElement.getAttribute('datetime') : 'N/A';
 
-    // Push post object to postData array
-    postData.push(postObject);
+      if (postUrl.contains("/comments/")) {
+        comments = getComments(postUrl)
+      } else {
+        comments = {}
+      }
+      // Create post object
+      var postObject = {
+        title: title,
+        author: author,
+        time: time,
+        authorRank: authorRank,
+        subreddit: subreddit,
+        commentCount: commentCount,
+        isAnnouncement: isAnnouncement,
+        upvoteCount: upvoteCount,
+        downvoteCount: downvoteCount,
+        url: postUrl,
+        comments: comments
+      };
+
+      // Push post object to postData array
+      postData.push(postObject);
+    }
   });
 
   // Convert postData to JSON and log it
